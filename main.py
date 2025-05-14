@@ -110,7 +110,7 @@ class Maze:
         num_cols,
         cell_size_x,
         cell_size_y,
-        win,
+        win=None,
     ):
         self.x1 = x1
         self.y1 = y1
@@ -119,6 +119,11 @@ class Maze:
         self.cell_size_x = cell_size_x
         self.cell_size_y = cell_size_y
         self.win = win
+
+        if self.num_rows == 0 or self.num_cols == 0 or self.cell_size_x == 0 or self.cell_size_y == 0:
+            raise ValueError("Maze dimensions and cell sizes must be greater than zero")
+
+        self._create_cells() # creates the grid of cells
 
     def _create_cells(self):
         self._cells = []
@@ -140,32 +145,35 @@ class Maze:
                 
     def _draw_cell(self, i, j):
         cell = self._cells[i][j]
-        cell.draw("black")
-        self._animate()
+        if self.win is not None:
+            cell.draw("black")
+            self._animate()
     
     def _animate(self):
-        self.win.redraw()
-        time.sleep(0.05)
+        if self.win is not None:
+            self.win.redraw()
+            time.sleep(0.03)
+
+    def _break_entrance_and_exit(self):
+        if self._cells[0][0]:
+            self._cells[0][0].has_top_wall = False
+            self._draw_cell(0,0)
+
+
+        end_cell = self._cells[self.num_cols - 1][self.num_rows - 1]
+        if end_cell:
+            end_cell.has_bottom_wall = False
+            self._draw_cell(self.num_cols - 1,self.num_rows - 1)
+            
 
 ## ---------------------------------------------- probably should be a new .py file but fuck it we ball
 
 def main():
     win = Window(800, 600)
 
-    cell1 = Cell(100,200,200,300, win)
-    cell1.has_bottom_wall = False
-    cell1.has_top_wall = False
-    cell1.draw("black")
-
-    cell2 = Cell(300, 200, 400, 300, win)
-    cell2.has_right_wall = False  
-    cell2.draw("red")
-
-    cell3 = Cell(500, 200, 600, 300, win)
-    cell3.has_left_wall = False  
-    cell3.draw("blue")
-
-    move_line = cell1.draw_move(cell3)
+    maze = Maze(10,10,19,26,30,30,win)
+    
+    
 
     win.wait_for_close()
 
