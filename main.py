@@ -1,5 +1,6 @@
 from tkinter import Tk, BOTH, Canvas
 import time
+import random
 
 class Window:
     def __init__(self, width, height):
@@ -56,31 +57,37 @@ class Cell:
         self._x2 = x2
         self._y2 = y2
         self._win = win
+        self.visited = False
 
     def draw(self, colour):
-        if self.has_top_wall:
-            p1 = Point(self._x1, self._y1)
-            p2 = Point(self._x2, self._y1)
-            top_line = Line(p1,p2)
-            self._win.draw_line(top_line, colour)  # Use the Window's draw_line method
+        p1 = Point(self._x1, self._y1)
+        p2 = Point(self._x2, self._y1)
+        wall_color = colour if self.has_top_wall else "white"
+        self._win.draw_line(Line(p1, p2), wall_color)
+        
+        
+        p1 = Point(self._x1, self._y2)
+        p2 = Point(self._x2, self._y2)
+        wall_color = colour if self.has_bottom_wall else "white"
+        self._win.draw_line(Line(p1, p2), wall_color)
 
-        if self.has_bottom_wall:
-            p1 = Point(self._x1, self._y2)
-            p2 = Point(self._x2, self._y2)
-            bot_line = Line(p1,p2)
-            self._win.draw_line(bot_line, colour)
+        
+        p1 = Point(self._x1, self._y1)
+        p2 = Point(self._x1, self._y2)
+        wall_color = colour if self.has_left_wall else "white"
+        self._win.draw_line(Line(p1, p2), wall_color)
 
-        if self.has_left_wall:
-            p1 = Point(self._x1, self._y1)
-            p2 = Point(self._x1, self._y2)
-            left_line = Line(p1,p2)
-            self._win.draw_line(left_line, colour)
+        
+        p1 = Point(self._x2, self._y1)
+        p2 = Point(self._x2, self._y2)
+        wall_color = colour if self.has_right_wall else "white"
+        self._win.draw_line(Line(p1, p2), wall_color)
 
-        if self.has_right_wall:
-            p1 = Point(self._x2, self._y1)
-            p2 = Point(self._x2, self._y2)
-            right_line = Line(p1,p2)
-            self._win.draw_line(right_line, colour)
+
+    def _draw_wall(self, p1, p2, has_wall, colour):
+        wall_colour = colour if has_wall else "white"
+        line = Line(p1, p2)
+        self._win.draw_line(line, wall_colour)
 
     def draw_move(self, to_cell, undo=False):
         colour = "red"
@@ -111,6 +118,7 @@ class Maze:
         cell_size_x,
         cell_size_y,
         win=None,
+        seed=None
     ):
         self.x1 = x1
         self.y1 = y1
@@ -119,6 +127,10 @@ class Maze:
         self.cell_size_x = cell_size_x
         self.cell_size_y = cell_size_y
         self.win = win
+        if seed != None:
+            self.seed = seed
+        else:
+            self.seed = None
 
         if self.num_rows == 0 or self.num_cols == 0 or self.cell_size_x == 0 or self.cell_size_y == 0:
             raise ValueError("Maze dimensions and cell sizes must be greater than zero")
@@ -152,7 +164,7 @@ class Maze:
     def _animate(self):
         if self.win is not None:
             self.win.redraw()
-            time.sleep(0.03)
+            time.sleep(0.01)
 
     def _break_entrance_and_exit(self):
         if self._cells[0][0]:
@@ -171,8 +183,8 @@ class Maze:
 def main():
     win = Window(800, 600)
 
-    maze = Maze(10,10,19,26,30,30,win)
-    
+    maze = Maze(100,100,5,5,50,50,win) # 10,10,19,26,30,30,win
+    maze._break_entrance_and_exit()
     
 
     win.wait_for_close()

@@ -29,9 +29,12 @@ class Tests(unittest.TestCase):
             num_rows,
         )
 
+    def test_maze_zero_cells(self):
+        with self.assertRaises(ValueError) as context:
+            m1 = Maze(0, 0, 0, 0, 6, 10)
+        self.assertEqual(str(context.exception), "Maze dimensions and cell sizes must be greater than zero")
 
-        ## to do, unit test for mazes with 0 dimensions for exception checking
-        ## also add a few more quirky numbers 
+        
 
 if __name__ == "__main__":
     unittest.main()
