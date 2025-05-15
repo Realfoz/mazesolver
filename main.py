@@ -92,7 +92,7 @@ class Cell:
     def draw_move(self, to_cell, undo=False):
         colour = "red"
         if undo:
-            colour = "gray"
+            colour = "#D3D3D3"
 
         # Midpoint of self (this cell)
         mid_x = (self._x1 + self._x2) / 2
@@ -107,6 +107,7 @@ class Cell:
         line1 = Line(mid, target_mid)
         self._win.draw_line(line1, colour)
 
+    
         
 class Maze:
     def __init__(
@@ -139,20 +140,20 @@ class Maze:
 
     def _create_cells(self):
         self._cells = []
-        for i in range(self.num_cols):
-            column = []
-            for j in range(self.num_rows):
+        for i in range(self.num_rows):
+            row = []
+            for j in range(self.num_cols):
                 cell = Cell(
-                self.x1 + (i * self.cell_size_x),
-                self.y1 + (j * self.cell_size_y),
-                self.x1 + ((i+1) * self.cell_size_x),
-                self.y1 + ((j+1) * self.cell_size_y),
+                self.x1 + (j * self.cell_size_x),  # column
+                self.y1 + (i * self.cell_size_y),  # row
+                self.x1 + ((j+1) * self.cell_size_x),
+                self.y1 + ((i+1) * self.cell_size_y),
                 self.win)
-                column.append(cell)     
-            self._cells.append(column)
+                row.append(cell)     
+            self._cells.append(row)
 
-        for i in range(self.num_cols):
-            for j in range(self.num_rows):
+        for i in range(self.num_rows):
+            for j in range(self.num_cols):
                 self._draw_cell(i, j)
                 
     def _draw_cell(self, i, j):
@@ -172,20 +173,152 @@ class Maze:
             self._draw_cell(0,0)
 
 
-        end_cell = self._cells[self.num_cols - 1][self.num_rows - 1]
+        end_cell = self._cells[self.num_rows - 1][self.num_cols - 1]
         if end_cell:
             end_cell.has_bottom_wall = False
-            self._draw_cell(self.num_cols - 1,self.num_rows - 1)
+            self._draw_cell(self.num_rows - 1,self.num_cols - 1)
+    
+    def _break_walls_r(self,i,j):
+        self._cells[i][j].visited = True
+
+        while True:
+            possible = []
+            # Check the four adjacent cells
+            adjacent_cells = [
+                (i-1, j),  # up
+                (i+1, j),  # down
+                (i, j-1),  # left
+                (i, j+1)   # right
+            ]
+
+            for next_i, next_j in adjacent_cells:
+                if self._is_valid_unvisited(next_i, next_j):
+                    possible.append((next_i, next_j))
+            if len(possible) == 0:
+                self._draw_cell(i,j)
+                return
+            next_i, next_j = random.choice(possible)
+            self._break_wall_between(i,j,next_i,next_j)
+            self._break_walls_r(next_i,next_j)    
+        
             
 
+    def _is_valid_unvisited(self, i, j):
+        # Check if within bounds
+        if i < 0 or i >= self.num_rows or j < 0 or j >= self.num_cols:
+            return False
+         
+        # Check if not visited
+        return not self._cells[i][j].visited
+    
+    def _break_wall_between(self, i, j, next_i, next_j):
+        if next_i == i - 1:  # Moving up
+            if not self._is_top_edge(i, j):
+                self._cells[i][j].has_top_wall = False
+            if not self._is_bottom_edge(next_i, next_j):
+                self._cells[next_i][next_j].has_bottom_wall = False
+        # Moving down
+        elif next_i == i + 1:
+            if not self._is_bottom_edge(i, j):
+                self._cells[i][j].has_bottom_wall = False
+            if not self._is_top_edge(next_i, next_j):
+                self._cells[next_i][next_j].has_top_wall = False
+        # Moving left
+        elif next_j == j - 1:
+            if not self._is_left_edge(i, j):
+                self._cells[i][j].has_left_wall = False
+            if not self._is_right_edge(next_i, next_j):
+                self._cells[next_i][next_j].has_right_wall = False
+        # Moving right
+        elif next_j == j + 1:
+            if not self._is_right_edge(i, j):
+                self._cells[i][j].has_right_wall = False
+            if not self._is_left_edge(next_i, next_j):
+                self._cells[next_i][next_j].has_left_wall = False
+        
+
+    def _is_top_edge(self, i, j):
+        return i == 0
+    def _is_bottom_edge(self, i, j):
+        return i == self.num_rows - 1
+    def _is_left_edge(self, i, j):
+        return j == 0
+    def _is_right_edge(self, i, j):
+        return j == self.num_cols - 1
+    
+    def _reset_cells_visited(self):
+        for i in range(self.num_rows):
+            for j in range(self.num_cols):
+                self._cells[i][j].visited = False
+
+    def solve(self):
+        result = self._solve_r(0,0)
+        return result
+    
+    def _solve_r(self,i,j):
+        self._animate()
+        current = self._cells[i][j]
+        current.visited = True
+        if current == self._cells[self.num_rows - 1][self.num_cols - 1]:
+            return True
+        
+        # Directions as coordinate changes: (row_change, col_change)
+        directions = [(-1, 0),  # Up
+                    (0, 1),   # Right
+                    (1, 0),   # Down
+                    (0, -1)]  # Left
+
+        for di, dj in directions:
+            new_i, new_j = i + di, j + dj
+            
+            if self._is_valid_unvisited(new_i,new_j):
+                if not self._is_wall_between(i,j, new_i, new_j):
+                    current_cell = self._cells[i][j]
+                    next_cell = self._cells[new_i][new_j]
+                    current_cell.draw_move(next_cell)
+                    if self._solve_r(new_i,new_j):
+                        return True
+                    current_cell.draw_move(next_cell, True)
+        return False
+
+
+
+    def _is_wall_between(self, i1, j1, i2, j2):
+        # Check which direction we're moving and return if there's a wall
+        
+        # Moving North
+        if i2 == i1 - 1 and j2 == j1:
+            return self._cells[i1][j1].has_top_wall
+        
+        # Moving South
+        elif i2 == i1 + 1 and j2 == j1:
+            return self._cells[i1][j1].has_bottom_wall
+        
+        # Moving West
+        elif i2 == i1 and j2 == j1 - 1:
+            return self._cells[i1][j1].has_left_wall
+        
+        # Moving East
+        elif i2 == i1 and j2 == j1 + 1:
+            return self._cells[i1][j1].has_right_wall
+        
+        # Not adjacent cells
+        else:
+            return True  # Consider it a wall if not adjacent
+
+
+
+    
 ## ---------------------------------------------- probably should be a new .py file but fuck it we ball
 
 def main():
     win = Window(800, 600)
-
-    maze = Maze(100,100,5,5,50,50,win) # 10,10,19,26,30,30,win
+    time.sleep(10.00)
+    maze = Maze(10,10,19,26,30,30,win) # 10,10,19,26,30,30,win
     maze._break_entrance_and_exit()
-    
+    maze._break_walls_r(0,0)
+    maze._reset_cells_visited()
+    maze.solve()
 
     win.wait_for_close()
 
