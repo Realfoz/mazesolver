@@ -313,7 +313,7 @@ class Maze:
 
 def main():
     win = Window(800, 600)
-    time.sleep(10.00)
+    
     maze = Maze(10,10,19,26,30,30,win) # 10,10,19,26,30,30,win
     maze._break_entrance_and_exit()
     maze._break_walls_r(0,0)
